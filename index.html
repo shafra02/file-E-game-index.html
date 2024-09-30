@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لعبة تجنب الأعداء مع جمع النقاط</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f0f0f0;
+    }
+    canvas {
+      border: 2px solid #000;
+      background-color: #fff;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+
+    // إعدادات اللاعب
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 15,
+      color: "blue",
+      speed: 5
+    };
+
+    // إعدادات الأعداء
+    const enemies = [];
+    const enemyRadius = 10;
+    const enemySpeed = 2;
+
+    // إعدادات النقاط (الكرات الصفراء)
+    const coins = [];
+    const coinRadius = 8;
+    let score = 0;
+
+    // حركة اللاعب
+    let keys = {
+      ArrowUp: false,
+      ArrowDown: false,
+      ArrowLeft: false,
+      ArrowRight: false
+    };
+
+    // إنشاء أعداء بشكل عشوائي
+    function spawnEnemy() {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const angle = Math.random() * Math.PI * 2;
+      enemies.push({
+        x: x,
+        y: y,
+        dx: Math.cos(angle) * enemySpeed,
+        dy: Math.sin(angle) * enemySpeed,
+        color: "red"
+      });
+    }
+
+    // إنشاء نقاط (كرات صفراء) بشكل عشوائي
+    function spawnCoin() {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      coins.push({
+        x: x,
+        y: y,
+        color: "yellow"
+      });
+    }
+
+    // رسم اللاعب
+    function drawPlayer() {
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fillStyle = player.color;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // رسم الأعداء
+    function drawEnemies() {
+      enemies.forEach(enemy => {
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemyRadius, 0, Math.PI * 2);
+        ctx.fillStyle = enemy.color;
+        ctx.fill();
+        ctx.closePath();
+      });
+    }
+
+    // رسم النقاط (الكرات الصفراء)
+    function drawCoins() {
+      coins.forEach(coin => {
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coinRadius, 0, Math.PI * 2);
+        ctx.fillStyle = coin.color;
+        ctx.fill();
+        ctx.closePath();
+      });
+    }
+
+    // تحديث حركة الأعداء
+    function updateEnemies() {
+      enemies.forEach(enemy => {
+        enemy.x += enemy.dx;
+        enemy.y += enemy.dy;
+
+        // ارتداد الأعداء عند حواف الشاشة
+        if (enemy.x + enemyRadius > canvas.width || enemy.x - enemyRadius < 0) {
+          enemy.dx = -enemy.dx;
+        }
+        if (enemy.y + enemyRadius > canvas.height || enemy.y - enemyRadius < 0) {
+          enemy.dy = -enemy.dy;
+        }
+      });
+    }
+
+    // تحديث حركة اللاعب
+    function updatePlayer() {
+      if (keys.ArrowUp && player.y - player.radius > 0) {
+        player.y -= player.speed;
+      }
+      if (keys.ArrowDown && player.y + player.radius < canvas.height) {
+        player.y += player.speed;
+      }
+      if (keys.ArrowLeft && player.x - player.radius > 0) {
+        player.x -= player.speed;
+      }
+      if (keys.ArrowRight && player.x + player.radius < canvas.width) {
+        player.x += player.speed;
+      }
+    }
+
+    // التحقق من التصادم بين اللاعب والأعداء
+    function checkCollision() {
+      for (let i = 0; i < enemies.length; i++) {
+        const distX = player.x - enemies[i].x;
+        const distY = player.y - enemies[i].y;
+        const distance = Math.sqrt(distX * distX + distY * distY);
+
+        if (distance < player.radius + enemyRadius) {
+          alert("Game Over! حاول مرة أخرى!");
+          document.location.reload();
+          break;
+        }
+      }
+    }
+
+    // التحقق من جمع النقاط
+    function checkCoinCollection() {
+      for (let i = 0; i < coins.length; i++) {
+        const distX = player.x - coins[i].x;
+        const distY = player.y - coins[i].y;
+        const distance = Math.sqrt(distX * distX + distY * distY);
+
+        if (distance < player.radius + coinRadius) {
+          coins.splice(i, 1); // إزالة الكوين بعد جمعها
+          score += 10; // زيادة السكور
+          scoreElement.textContent = `Score: ${score}`; // تحديث عرض السكور
+        }
+      }
+    }
+
+    // حلقة اللعبة
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawPlayer();
+      drawEnemies();
+      drawCoins();
+      updateEnemies();
+      updatePlayer();
+      checkCollision();
+      checkCoinCollection();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // التحكم باللاعب
+    window.addEventListener("keydown", (e) => {
+      keys[e.key] = true;
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.key] = false;
+    });
+
+    // استدعاء أعداء بشكل دوري
+    setInterval(spawnEnemy, 1500);
+
+    // استدعاء كرات صفراء (نقاط) بشكل دوري
+    setInterval(spawnCoin, 3000);
+
+    // بدء اللعبة
+    gameLoop();
+  </script>
+</body>
+</html>
